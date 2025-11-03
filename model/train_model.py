@@ -57,3 +57,22 @@ def train_model():
 
 if __name__ == "__main__":
     train_model()
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 📊 Visualizar importancia de variables
+def plot_feature_importance(model, feature_names):
+    importances = model.feature_importances_
+    df_importance = pd.DataFrame({
+        "Feature": feature_names,
+        "Importance": importances
+    }).sort_values(by="Importance", ascending=False)
+
+    plt.figure(figsize=(8, 5))
+    sns.barplot(x="Importance", y="Feature", data=df_importance, palette="viridis")
+    plt.title("Importancia de cada métrica en la clasificación")
+    plt.tight_layout()
+    plt.show()
+
+plot_feature_importance(model, X.columns)
