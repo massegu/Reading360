@@ -19,7 +19,7 @@ def save_reading(data):
                 "id", "user_id", "text_id",
                 "words_per_minute", "error_rate",
                 "fluency_score", "attention_score", "label",
-                "gaze_path_length", "fixation_count"
+                "gaze_path_length", "fixation_count","transcription"
             ])
         writer.writerow([
             data["id"],
@@ -31,7 +31,8 @@ def save_reading(data):
             data["attention_score"],
             data["label"],
             data["gaze_path_length"],
-            data["fixation_count"]
+            data["fixation_count"],
+            data["transcription"]
         ])
 
 def save_attention(gaze_points):
