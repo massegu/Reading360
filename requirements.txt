@@ -1,0 +1,8 @@
+streamlit
+openai-whisper
+pydub
+opencv-python
+mediapipe
+scikit-learn
+numpy
+pandas
