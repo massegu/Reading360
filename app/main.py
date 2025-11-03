@@ -1,6 +1,7 @@
 import streamlit as st
 import tempfile
 import os
+from app.audio_recorder import record_audio
 from backend.analyze_voice import analyze_audio
 from backend.predict_reader import predict_reader
 from backend.register_data import save_reading, save_attention
@@ -39,20 +40,22 @@ st.markdown(f"**Nivel:** {current_text['level']}")
 st.markdown(f"**Texto:** {current_text['content']}")
 
 # 🎙️ Subir o grabar audio
-st.markdown("### Paso 1: Sube tu lectura en voz alta")
-audio_file = st.file_uploader("Sube un archivo de audio (.mp3 o .wav)", type=["mp3", "wav"])
+st.markdown("### Paso 1: Graba tu lectura en voz alta")
 
-if audio_file:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{audio_file.type.split('/')[-1]}") as tmp:
-        tmp.write(audio_file.read())
-        st.session_state.audio_path = tmp.name
-    st.audio(st.session_state.audio_path)
+audio_path = record_audio()
+if audio_path:
+    st.session_state.audio_path = audio_path
+    st.audio(audio_path)
+    st.success("✅ Audio grabado correctamente")
 
-# 📊 Analizar voz
-if st.session_state.audio_path and st.button("🔍 Analizar lectura"):
+    # 📊 Analizar voz automáticamente
+    st.markdown("### Paso 2: Resultados del análisis")
     with st.spinner("Analizando con Whisper..."):
-        st.session_state.metrics = analyze_audio(st.session_state.audio_path)
-        st.success("✅ Análisis completado")
+        try:
+            st.session_state.metrics = analyze_audio(audio_path)
+            st.success("✅ Análisis completado")
+        except Exception as e:
+            st.error("❌ Error al analizar el audio")
 
 # 📈 Mostrar métricas
 if st.session_state.metrics:
