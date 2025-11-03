@@ -8,3 +8,4 @@ numpy
 pandas
 matplotlib
 seaborn
+streamlit-webrtc
