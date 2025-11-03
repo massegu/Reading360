@@ -1,0 +1,7 @@
+id,user_id,text_id,words_per_minute,error_rate,fluency_score,attention_score,label
+r001,u001,txt001,145,0.02,0.95,0.88,fluido
+r002,u002,txt002,110,0.05,0.73,0.65,intermedio
+r003,u003,txt003,80,0.12,0.53,0.42,dificultad
+r004,u004,txt001,130,0.03,0.87,0.75,fluido
+r005,u005,txt002,95,0.08,0.63,0.58,intermedio
+r006,u006,txt003,70,0.15,0.47,0.35,dificultad
