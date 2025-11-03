@@ -5,6 +5,7 @@ from backend.analyze_voice import analyze_audio
 from backend.predict_reader import predict_reader
 from backend.register_data import save_reading, save_attention
 from backend.analyze_attention import calculate_attention_score
+from backend.extract_gaze_metrics import extract_gaze_metrics
 import json
 import uuid
 
@@ -74,9 +75,12 @@ if st.session_state.prediction:
                 attention_data = json.load(f)
                 last_gaze_points = attention_data[-1]["points"] if attention_data else []
                 attention_score = calculate_attention_score(last_gaze_points)
+                gaze_metrics = extract_gaze_metrics(last_gaze_points)
         except Exception as e:
             st.warning("⚠️ No se pudo calcular el attention_score")
             attention_score = 0.0
+            gaze_metrics = {"gaze_path_length": 0.0, "fixation_count": 0}
+
         reading_id = f"r{uuid.uuid4().hex[:6]}"
         save_reading({
             "id": reading_id,
@@ -86,7 +90,9 @@ if st.session_state.prediction:
             "error_rate": st.session_state.metrics.get("error_rate", 0),
             "fluency_score": st.session_state.metrics["fluency_score"],
             "attention_score": attention_score,
-            "label": st.session_state.prediction["label"]
+            "label": st.session_state.prediction["label"],
+            "gaze_path_length": gaze_metrics["gaze_path_length"],
+            "fixation_count": gaze_metrics["fixation_count"]
     })
     st.success(f"✅ Lectura guardada con attention_score: {attention_score}")
 
@@ -103,3 +109,6 @@ from app.video_stream import FaceMeshTransformer
 
 st.markdown("### 👁️ Seguimiento facial en tiempo real")
 webrtc_streamer(key="face-tracker", video_transformer_factory=FaceMeshTransformer)
+
+if st.checkbox("📂 Ver lecturas guardadas"):
+    show_readings_dashboard()
