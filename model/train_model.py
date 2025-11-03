@@ -16,20 +16,25 @@ def train_model():
 
     df = pd.read_csv(DATA_PATH)
 
-    # 🧹 Filtrar columnas necesarias
+    # 🧹 Verificar columnas necesarias
     required_columns = [
-        "words_per_minute",
-        "error_rate",
-        "fluency_score",
-        "attention_score",
-        "label"
+        "words_per_minute", "error_rate", "fluency_score", "attention_score",
+        "gaze_path_length", "fixation_count", "label"
     ]
 
     if not all(col in df.columns for col in required_columns):
         print("❌ El archivo CSV no contiene todas las columnas necesarias")
         return
 
-    X = df[["words_per_minute", "error_rate", "fluency_score", "attention_score"]]
+    # 🎯 Features y etiquetas
+    X = df[[
+        "words_per_minute",
+        "error_rate",
+        "fluency_score",
+        "attention_score",
+        "gaze_path_length",
+        "fixation_count"
+    ]]
     y = df["label"]
 
     # 🔀 Dividir datos
