@@ -1,15 +1,19 @@
 import streamlit as st
 import tempfile
+import sys
 import os
-from app.audio_recorder import record_audio
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from streamlit_webrtc import webrtc_streamer
+from app.video_stream import FaceMeshTransformer
+from audio_recorder import record_audio
 from backend.analyze_voice import analyze_audio
 from backend.predict_reader import predict_reader
 from backend.register_data import save_reading, save_attention
 from backend.analyze_attention import calculate_attention_score
 from backend.extract_gaze_metrics import extract_gaze_metrics
+from app.dashboard import show_readings_dashboard
 import json
 import uuid
-
 
 st.set_page_config(page_title="Reading360", layout="centered")
 
@@ -36,8 +40,18 @@ st.subheader("Evaluación lectora con voz, mirada y tiempo")
 
 # 📝 Mostrar texto actual
 current_text = texts[st.session_state.index]
+level_colors = {
+    "Fácil": "#2E8B57",       # verde
+    "Intermedio": "#1E90FF",  # azul
+    "Difícil": "#B22222"      # rojo
+}
+color = level_colors.get(current_text["level"], "#333")
+
 st.markdown(f"**Nivel:** {current_text['level']}")
-st.markdown(f"**Texto:** {current_text['content']}")
+st.markdown(
+    f"<div style='font-size:28px; font-weight:500; line-height:1.6; color:{color}'>{current_text['content']}</div>",
+    unsafe_allow_html=True
+)
 
 # 🎙️ Subir o grabar audio
 st.markdown("### Paso 1: Graba tu lectura en voz alta")
@@ -47,6 +61,11 @@ if audio_path:
     st.session_state.audio_path = audio_path
     st.audio(audio_path)
     st.success("✅ Audio grabado correctamente")
+
+    st.markdown("### 👁️ Seguimiento facial en tiempo real")
+    webrtc_streamer(key="face-tracker", video_transformer_factory=FaceMeshTransformer)
+    st.info("📸 Si no ves tu cara, asegúrate de que la cámara está activada y permitida en el navegador.")
+
 
     # 📊 Analizar voz automáticamente
     st.markdown("### Paso 2: Resultados del análisis")
@@ -72,6 +91,9 @@ if st.session_state.prediction:
     st.caption(f"Confianza del modelo: {st.session_state.prediction['confidence']:.2%}")
 
     if st.button("💾 Guardar lectura"):
+        attention_score = 0.0
+        gaze_metrics = {"gaze_path_length": 0.0, "fixation_count": 0}
+
         # Cargar puntos de mirada desde attention.json
         try:
             with open("data/attention.json") as f:
@@ -108,12 +130,6 @@ if st.session_state.index < len(texts) - 1 and st.button("➡️ Siguiente texto
     st.session_state.audio_path = None
     st.session_state.metrics = None
     st.session_state.prediction = None
-
-from streamlit_webrtc import webrtc_streamer
-from app.video_stream import FaceMeshTransformer
-
-st.markdown("### 👁️ Seguimiento facial en tiempo real")
-webrtc_streamer(key="face-tracker", video_transformer_factory=FaceMeshTransformer)
 
 if st.checkbox("📂 Ver lecturas guardadas"):
     show_readings_dashboard()
