@@ -95,7 +95,9 @@ if st.session_state.prediction:
             "attention_score": attention_score,
             "label": st.session_state.prediction["label"],
             "gaze_path_length": gaze_metrics["gaze_path_length"],
-            "fixation_count": gaze_metrics["fixation_count"]
+            "fixation_count": gaze_metrics["fixation_count"],
+            "transcription": st.session_state.transcription,
+
     })
     st.success(f"✅ Lectura guardada con attention_score: {attention_score}")
 
