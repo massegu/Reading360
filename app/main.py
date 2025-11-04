@@ -11,7 +11,6 @@ from backend.predict_reader import predict_reader
 from backend.register_data import save_reading, save_attention
 from backend.analyze_attention import calculate_attention_score
 from backend.extract_gaze_metrics import extract_gaze_metrics
-from app.dashboard import show_readings_dashboard
 import json
 import uuid
 
@@ -53,34 +52,58 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 🎙️ Subir o grabar audio
+# 🎙️ Paso 1: Graba tu lectura en voz alta
 st.markdown("### Paso 1: Graba tu lectura en voz alta")
 
-audio_path = record_audio()
-if audio_path:
-    st.session_state.audio_path = audio_path
-    st.audio(audio_path)
-    st.success("✅ Audio grabado correctamente")
+# Inicializar el procesador si no existe
+if "audio_processor" not in st.session_state:
+    from audio_recorder import AudioProcessor
+    st.session_state.audio_processor = AudioProcessor()
 
-# 👁️ Seguimiento facial en tiempo real
+# Mostrar el componente de grabación
+webrtc_ctx = webrtc_streamer(
+    key="audio-recorder",
+    mode=WebRtcMode.SENDONLY,
+    audio_processor_factory=lambda: st.session_state.audio_processor,
+    media_stream_constraints={"audio": True, "video": False},
+    async_processing=True,
+)
+
+# Procesar el audio si hay datos
+if webrtc_ctx.state.playing and st.session_state.audio_processor.frames:
+    import numpy as np
+    import wave
+
+    audio_data = np.concatenate(st.session_state.audio_processor.frames, axis=0)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        with wave.open(tmp.name, "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(48000)
+            wf.writeframes(audio_data.tobytes())
+        st.session_state.audio_path = tmp.name
+        st.audio(tmp.name)
+        st.success("✅ Audio grabado correctamente")
+
+# 👁️ Paso 2: Seguimiento facial
 st.markdown("### 👁️ Seguimiento facial en tiempo real")
 webrtc_streamer(
-        key="face-tracker", 
-        video_transformer_factory=FaceMeshTransformer,
-        media_stream_constraints={"video": True, "audio": False},
-        async_transform=True,
-    )
+    key="face-tracker", 
+    video_transformer_factory=FaceMeshTransformer,
+    media_stream_constraints={"video": True, "audio": False},
+    async_transform=True,
+)
 st.info("📸 Si no ves tu cara, asegúrate de que la cámara está activada y permitida en el navegador.")
 
-
-    # 📊 Analizar voz automáticamente
-st.markdown("### Paso 2: Resultados del análisis")
-with st.spinner("Analizando con Whisper..."):
+# 📊 Paso 3: Análisis de voz
+if st.session_state.audio_path:
+    st.markdown("### Paso 3: Resultados del análisis")
+    with st.spinner("Analizando con Whisper..."):
         try:
-            st.session_state.metrics = analyze_audio(audio_path)
+            st.session_state.metrics = analyze_audio(st.session_state.audio_path)
             st.success("✅ Análisis completado")
         except Exception as e:
-            st.error("❌ Error al analizar el audio")
+            st.error(f"❌ Error al analizar el audio: {e}")
 
 # 📈 Mostrar métricas
 if st.session_state.metrics:
@@ -100,7 +123,6 @@ if st.session_state.prediction:
         attention_score = 0.0
         gaze_metrics = {"gaze_path_length": 0.0, "fixation_count": 0}
 
-        # Cargar puntos de mirada desde attention.json
         try:
             with open("data/attention.json") as f:
                 attention_data = json.load(f)
@@ -109,8 +131,6 @@ if st.session_state.prediction:
                 gaze_metrics = extract_gaze_metrics(last_gaze_points)
         except Exception as e:
             st.warning("⚠️ No se pudo calcular el attention_score")
-            attention_score = 0.0
-            gaze_metrics = {"gaze_path_length": 0.0, "fixation_count": 0}
 
         reading_id = f"r{uuid.uuid4().hex[:6]}"
         save_reading({
@@ -124,18 +144,6 @@ if st.session_state.prediction:
             "label": st.session_state.prediction["label"],
             "gaze_path_length": gaze_metrics["gaze_path_length"],
             "fixation_count": gaze_metrics["fixation_count"],
-            "transcription": st.session_state.transcription,
-
-    })
-    st.success(f"✅ Lectura guardada con attention_score: {attention_score}")
-
-
-# ➡️ Siguiente texto
-if st.session_state.index < len(texts) - 1 and st.button("➡️ Siguiente texto"):
-    st.session_state.index += 1
-    st.session_state.audio_path = None
-    st.session_state.metrics = None
-    st.session_state.prediction = None
-
-if st.checkbox("📂 Ver lecturas guardadas"):
-    show_readings_dashboard()
+            "transcription": st.session_state.metrics["transcription"],
+        })
+        st.success(f"✅ Lectura guardada con attention_score: {attention_score}")
