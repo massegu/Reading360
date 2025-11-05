@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from streamlit_webrtc import webrtc_streamer
 from streamlit_webrtc import WebRtcMode
 from app.video_stream import FaceMeshTransformer
-#from audio_recorder import record_audio
+from audio_recorder import AudioProcessor
 from backend.analyze_voice import analyze_audio
 from backend.predict_reader import predict_reader
 from backend.register_data import save_reading, save_attention
