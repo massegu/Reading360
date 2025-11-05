@@ -3,13 +3,19 @@ from pydub import AudioSegment
 import tempfile
 import os
 
-# Cargar el modelo Whisper una sola vez
-model = whisper.load_model("base")
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        _model = whisper.load_model("base")
+    return _model
 
 def analyze_audio(audio_path):
     """
     Transcribe el audio y calcula métricas de lectura.
     """
+    model = get_model()
     try:
         # Convertir a WAV si es necesario
         if not isinstance(audio_path, str) or not audio_path.endswith(".wav"):
