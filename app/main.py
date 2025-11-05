@@ -71,19 +71,21 @@ webrtc_ctx = webrtc_streamer(
 
 # Procesar el audio si hay datos
 if webrtc_ctx.state.playing and st.session_state.audio_processor.frames:
-    import numpy as np
-    import wave
+    if st.button("📥 Procesar audio grabado"):
+        import numpy as np
+        import wave
 
-    audio_data = np.concatenate(st.session_state.audio_processor.frames, axis=0)
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-        with wave.open(tmp.name, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)
-            wf.setframerate(48000)
-            wf.writeframes(audio_data.tobytes())
-        st.session_state.audio_path = tmp.name
-        st.audio(tmp.name)
-        st.success("✅ Audio grabado correctamente")
+        audio_data = np.concatenate(st.session_state.audio_processor.frames, axis=0)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+            with wave.open(tmp.name, "wb") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(48000)
+                wf.writeframes(audio_data.tobytes())
+            st.session_state.audio_path = tmp.name
+            st.audio(tmp.name)
+            st.success("✅ Audio grabado correctamente")
+
 
 # 👁️ Paso 2: Seguimiento facial
 st.markdown("### 👁️ Seguimiento facial en tiempo real")
@@ -96,14 +98,14 @@ webrtc_streamer(
 st.info("📸 Si no ves tu cara, asegúrate de que la cámara está activada y permitida en el navegador.")
 
 # 📊 Paso 3: Análisis de voz
-if st.session_state.audio_path:
+if st.session_state.audio_path and isinstance(st.session_state.audio_path, str):
     st.markdown("### Paso 3: Resultados del análisis")
     with st.spinner("Analizando con Whisper..."):
         try:
             st.session_state.metrics = analyze_audio(st.session_state.audio_path)
             st.success("✅ Análisis completado")
         except Exception as e:
-            st.error(f"❌ Error al analizar el audio: {e}")
+            st.error(f"❌ Error en el análisis de audio: {e}")
 
 # 📈 Mostrar métricas
 if st.session_state.metrics:
