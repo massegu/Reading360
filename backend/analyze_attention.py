@@ -21,3 +21,22 @@ def calculate_attention_score(gaze_points):
     max_dispersion = 300  # ajustable según resolución
     score = max(0.0, min(1.0, 1 - dispersion / max_dispersion))
     return round(score, 3)
+
+from .analyze_attention import calculate_attention_score
+
+def analyze_visual_metrics(data):
+    """
+    Recibe coordenadas faciales y calcula métricas de atención.
+    """
+    try:
+        # Espera una lista de puntos de mirada: [{"x": ..., "y": ...}, ...]
+        gaze_points = data.get("gazePoints", [])
+        score = calculate_attention_score(gaze_points)
+
+        return {
+            "attention_score": score,
+            "num_points": len(gaze_points)
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
