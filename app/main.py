@@ -21,36 +21,34 @@ st.sidebar.title("🧭 Navegación")
 vista = st.sidebar.radio("Selecciona una vista:", ["Evaluación lectora", "Historial de lecturas"])
 
 if vista == "Evaluación lectora":
-    # tu código actual aquí
 
+    # 📚 Textos de lectura
+        texts = [
+        {"id": "txt001", "level": "Fácil", "content": "El sol brilla en el cielo azul."},
+        {"id": "txt002", "level": "Intermedio", "content": "Los animales del bosque se reúnen cada mañana para buscar alimento."},
+        {"id": "txt003", "level": "Difícil", "content": "La neuroplasticidad permite que el cerebro reorganice sus conexiones sinápticas en respuesta a estímulos."}
+    ]
 
-# 📚 Textos de lectura
-    texts = [
-    {"id": "txt001", "level": "Fácil", "content": "El sol brilla en el cielo azul."},
-    {"id": "txt002", "level": "Intermedio", "content": "Los animales del bosque se reúnen cada mañana para buscar alimento."},
-    {"id": "txt003", "level": "Difícil", "content": "La neuroplasticidad permite que el cerebro reorganice sus conexiones sinápticas en respuesta a estímulos."}
-]
+    # 🔁 Estado de sesión
+        if "index" not in st.session_state:
+            st.session_state.index = 0
+        if "audio_path" not in st.session_state:
+            st.session_state.audio_path = None
+        if "metrics" not in st.session_state:
+            st.session_state.metrics = None
+        if "prediction" not in st.session_state:
+            st.session_state.prediction = None
 
-# 🔁 Estado de sesión
-if "index" not in st.session_state:
-    st.session_state.index = 0
-if "audio_path" not in st.session_state:
-    st.session_state.audio_path = None
-if "metrics" not in st.session_state:
-    st.session_state.metrics = None
-if "prediction" not in st.session_state:
-    st.session_state.prediction = None
+    # 🧠 Título
+        st.title("📖 Reading360")
+        st.subheader("Evaluación lectora con voz, mirada y tiempo")
 
-# 🧠 Título
-st.title("📖 Reading360")
-st.subheader("Evaluación lectora con voz, mirada y tiempo")
-
-# 📝 Mostrar texto actual
-current_text = texts[st.session_state.index]
-level_colors = {
-    "Fácil": "#2E8B57",       # verde
-    "Intermedio": "#1E90FF",  # azul
-    "Difícil": "#B22222"      # rojo
+        # 📝 Mostrar texto actual
+        current_text = texts[st.session_state.index]
+        level_colors = {
+            "Fácil": "#2E8B57",       # verde
+            "Intermedio": "#1E90FF",  # azul
+            "Difícil": "#B22222"      # rojo
 }
 color = level_colors.get(current_text["level"], "#333")
 
@@ -106,7 +104,7 @@ st.info("📸 Si no ves tu cara, asegúrate de que la cámara está activada y p
 
 # 📊 Paso 3: Análisis de voz
 st.write(f"📎 Audio path actual: {st.session_state.audio_path}")
-if isinstance(st.session_state.audio_path, str) and st.session_state.audio_path.endswith(".wav"):
+if st.session_state.audio_path and isinstance(st.session_state.audio_path, str) and st.session_state.audio_path.endswith(".wav"):
     st.markdown("### Paso 3: Resultados del análisis")
     with st.spinner("Analizando con Whisper..."):
         try:
