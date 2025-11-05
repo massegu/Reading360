@@ -45,20 +45,121 @@
       startBtn.disabled = false;
       stopBtn.disabled = true;
     };
-
-    sendBtn.onclick = async () => {
-      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "lectura.wav");
-
-      const response = await fetch("/upload-audio", {
-        method: "POST",
-        body: formData
-      });
-
-      const result = await response.json();
-      alert("✅ Análisis completado:\n" + JSON.stringify(result, null, 2));
-    };
   </script>
+  
+<script>
+  let latestVoiceMetrics = null;
+  let latestVisualMetrics = null;
+  const sessionId = Date.now().toString(); // ID único por sesión
+  let readingRegistered = false; // ✅ bandera para evitar múltiples registros
+
+  sendBtn.onclick = async () => {
+    const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "lectura.wav");
+
+    const response = await fetch("/upload-audio", {
+      method: "POST",
+      body: formData
+    });
+
+    const voiceResult = await response.json();
+    latestVoiceMetrics = voiceResult;
+    alert("✅ Voz analizada:\n" + JSON.stringify(voiceResult, null, 2));
+
+    tryRegisterReading(); // ✅ intenta registrar si ya hay datos visuales
+  };
+
+  async function tryRegisterReading() {
+    if (readingRegistered) return; // ✅ evita duplicación
+    if (!latestVoiceMetrics || !latestVisualMetrics) {
+      console.log("⏳ Esperando ambos análisis para registrar...");
+      return;
+    }
+
+    const readingData = {
+      session_id: sessionId,
+      user_id: "demo_user",
+      text_id: "demo_text",
+      label: "unlabeled",
+      voice: latestVoiceMetrics,
+      visual: latestVisualMetrics
+    };
+
+    const res = await fetch("/register-reading", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(readingData)
+    });
+
+    const result = await res.json();
+    alert("📚 Lectura registrada:\n" + JSON.stringify(result, null, 2));
+    readingRegistered = true; // ✅ marca como registrada
+  }
+</script>
+
+
+  <h2>👁️ Seguimiento facial</h2>
+<video id="video" autoplay muted playsinline width="320" height="240" style="border:1px solid #ccc;"></video>
+<canvas id="output" width="320" height="240" style="position:absolute; left:0; top:0;"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+<script>
+  const videoElement = document.getElementById('video');
+  const canvasElement = document.getElementById('output');
+  const canvasCtx = canvasElement.getContext('2d');
+
+  const faceMesh = new FaceMesh({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+  });
+
+  faceMesh.setOptions({
+    maxNumFaces: 1,
+    refineLandmarks: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  });
+
+let lastSent = 0;
+
+faceMesh.onResults(results => {
+  const now = Date.now();
+  if (now - lastSent < 2000) return; // espera 2 segundos entre envíos
+
+  canvasCtx.save();
+  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+  if (results.multiFaceLandmarks) {
+    for (const landmarks of results.multiFaceLandmarks) {
+      drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION, { color: '#C0C0C0', lineWidth: 1 });
+      drawConnectors(canvasCtx, landmarks, FACEMESH_RIGHT_EYE, { color: '#FF3030' });
+      drawConnectors(canvasCtx, landmarks, FACEMESH_LEFT_EYE, { color: '#30FF30' });
+
+      const gazePoints = landmarks.map(p => ({ x: p.x, y: p.y }));
+
+      fetch("/upload-visual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gazePoints })
+      }).then(res => res.json())
+        .then(data => {
+            latestVisualMetrics = data;
+            console.log("✅ Atención visual:", data);
+            tryRegisterReading();
+        })
+         .catch(err => console.error("❌ Error al enviar datos visuales:", err));
+
+      lastSent = now;
+    }
+  }
+
+  canvasCtx.restore();
+});
+
+</script>
 </body>
 </html>
