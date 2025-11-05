@@ -4,8 +4,9 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from streamlit_webrtc import webrtc_streamer
+from streamlit_webrtc import WebRtcMode
 from app.video_stream import FaceMeshTransformer
-from audio_recorder import record_audio
+#from audio_recorder import record_audio
 from backend.analyze_voice import analyze_audio
 from backend.predict_reader import predict_reader
 from backend.register_data import save_reading, save_attention
@@ -57,7 +58,6 @@ st.markdown("### Paso 1: Graba tu lectura en voz alta")
 
 # Inicializar el procesador si no existe
 if "audio_processor" not in st.session_state:
-    from audio_recorder import AudioProcessor
     st.session_state.audio_processor = AudioProcessor()
 
 # Mostrar el componente de grabación
@@ -121,19 +121,28 @@ if st.session_state.prediction:
     st.success(f"📌 Tipo de lector: **{st.session_state.prediction['label']}**")
     st.caption(f"Confianza del modelo: {st.session_state.prediction['confidence']:.2%}")
 
+if st.session_state.metrics and st.session_state.prediction:
     if st.button("💾 Guardar lectura"):
         attention_score = 0.0
         gaze_metrics = {"gaze_path_length": 0.0, "fixation_count": 0}
+        attention_data = []
 
+    if os.path.exists("data/attention.json"):
         try:
             with open("data/attention.json") as f:
-                attention_data = json.load(f)
-                last_gaze_points = attention_data[-1]["points"] if attention_data else []
-                attention_score = calculate_attention_score(last_gaze_points)
-                gaze_metrics = extract_gaze_metrics(last_gaze_points)
+                content = f.read().strip()
+                if content:
+                    attention_data = json.loads(content)
+                    last_gaze_points = attention_data[-1]["points"] if attention_data else []
+                    attention_score = calculate_attention_score(last_gaze_points)
+                    gaze_metrics = extract_gaze_metrics(last_gaze_points)
+                else:
+                    st.warning("⚠️ El archivo attention.json está vacío")
         except Exception as e:
-            st.warning("⚠️ No se pudo calcular el attention_score")
-
+            st.warning(f"⚠️ No se pudo leer el archivo attention.json: {e}")
+    else:
+        st.warning("⚠️ El archivo attention.json no existe")
+    
         reading_id = f"r{uuid.uuid4().hex[:6]}"
         save_reading({
             "id": reading_id,
