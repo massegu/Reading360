@@ -91,14 +91,15 @@ if webrtc_ctx.state.playing and st.session_state.audio_processor.frames:
 st.markdown("### 👁️ Seguimiento facial en tiempo real")
 webrtc_streamer(
     key="face-tracker", 
-    video_transformer_factory=FaceMeshTransformer,
+    video_processor_factory=FaceMeshTransformer,
     media_stream_constraints={"video": True, "audio": False},
-    async_transform=True,
+    async_processing=True,
 )
 st.info("📸 Si no ves tu cara, asegúrate de que la cámara está activada y permitida en el navegador.")
 
 # 📊 Paso 3: Análisis de voz
-if st.session_state.audio_path and isinstance(st.session_state.audio_path, str):
+st.write(f"📎 Audio path actual: {st.session_state.audio_path}")
+if isinstance(st.session_state.audio_path, str) and st.session_state.audio_path.endswith(".wav"):
     st.markdown("### Paso 3: Resultados del análisis")
     with st.spinner("Analizando con Whisper..."):
         try:
