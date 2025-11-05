@@ -12,13 +12,20 @@ from backend.predict_reader import predict_reader
 from backend.register_data import save_reading, save_attention
 from backend.analyze_attention import calculate_attention_score
 from backend.extract_gaze_metrics import extract_gaze_metrics
+from app.dashboard import show_readings_dashboard
 import json
 import uuid
 
 st.set_page_config(page_title="Reading360", layout="centered")
+st.sidebar.title("🧭 Navegación")
+vista = st.sidebar.radio("Selecciona una vista:", ["Evaluación lectora", "Historial de lecturas"])
+
+if vista == "Evaluación lectora":
+    # tu código actual aquí
+
 
 # 📚 Textos de lectura
-texts = [
+    texts = [
     {"id": "txt001", "level": "Fácil", "content": "El sol brilla en el cielo azul."},
     {"id": "txt002", "level": "Intermedio", "content": "Los animales del bosque se reúnen cada mañana para buscar alimento."},
     {"id": "txt003", "level": "Difícil", "content": "La neuroplasticidad permite que el cerebro reorganice sus conexiones sinápticas en respuesta a estímulos."}
@@ -159,3 +166,6 @@ if st.session_state.metrics and st.session_state.prediction:
             "transcription": st.session_state.metrics["transcription"],
         })
         st.success(f"✅ Lectura guardada con attention_score: {attention_score}")
+
+elif vista == "Historial de lecturas":
+    show_readings_dashboard()
