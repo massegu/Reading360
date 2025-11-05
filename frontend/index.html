@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reading360 - Grabación de voz</title>
+</head>
+<body>
+  <h1>🎙️ Reading360</h1>
+  <p>Haz clic en grabar, lee el texto en voz alta y luego envía el audio para analizarlo.</p>
+
+  <button id="startBtn">🔴 Grabar</button>
+  <button id="stopBtn" disabled>⏹️ Detener</button>
+  <button id="sendBtn" disabled>📤 Enviar</button>
+
+  <audio id="audioPlayback" controls></audio>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const sendBtn = document.getElementById("sendBtn");
+    const audioPlayback = document.getElementById("audioPlayback");
+
+    startBtn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+        audioPlayback.src = URL.createObjectURL(audioBlob);
+        sendBtn.disabled = false;
+      };
+
+      mediaRecorder.start();
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    };
+
+    stopBtn.onclick = () => {
+      mediaRecorder.stop();
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    };
+
+    sendBtn.onclick = async () => {
+      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "lectura.wav");
+
+      const response = await fetch("/upload-audio", {
+        method: "POST",
+        body: formData
+      });
+
+      const result = await response.json();
+      alert("✅ Análisis completado:\n" + JSON.stringify(result, null, 2));
+    };
+  </script>
+</body>
+</html>
