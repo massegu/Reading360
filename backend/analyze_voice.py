@@ -12,7 +12,7 @@ def analyze_audio(audio_path):
     """
     try:
         # Convertir a WAV si es necesario
-        if not audio_path or not isinstance(audio_path, str) or not audio_path.endswith(".wav"):
+        if not isinstance(audio_path, str) or not audio_path.endswith(".wav"):
             sound = AudioSegment.from_file(audio_path)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_wav:
                 sound.export(tmp_wav.name, format="wav")
