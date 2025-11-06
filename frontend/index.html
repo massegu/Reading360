@@ -3,20 +3,114 @@
 <head>
   <meta charset="UTF-8" />
   <title>Reading360 - Grabación de voz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      max-width: 800px;
+    }
+
+    h1, h2, h3 {
+      margin-top: 30px;
+    }
+
+    select, button {
+      margin: 10px 5px;
+      padding: 8px;
+      font-size: 16px;
+    }
+
+    #readingText {
+      background-color: #f9f9f9;
+      border: 1px solid #ccc;
+      padding: 12px;
+      font-size: 22px;
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+
+    audio {
+      margin-top: 10px;
+    }
+
+    .video-container {
+      position: relative;
+      width: 320px;
+      height: 240px;
+      margin-top: 20px;
+    }
+
+    #video {
+      border: 1px solid #ccc;
+    }
+
+    #output {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+  </style>
 </head>
 <body>
   <h1>🎙️ Reading360</h1>
-  <p>Haz clic en grabar, lee el texto en voz alta y luego envía el audio para analizarlo.</p>
+  <p>Selecciona un nivel, lee el texto en voz alta y luego envía el audio para analizarlo.</p>
 
+  <!-- Selector de nivel -->
+  <label for="levelSelect">📚 Nivel de lectura:</label>
+  <select id="levelSelect">
+    <option value="easy">Nivel 1 – Fácil</option>
+    <option value="medium">Nivel 2 – Intermedio</option>
+    <option value="hard">Nivel 3 – Avanzado</option>
+  </select>
+
+  <!-- Texto dinámico -->
+  <h3>Texto para leer:</h3>
+  <p id="readingText"></p>
+
+  <!-- Botones de grabación -->
   <button id="startBtn">🔴 Grabar</button>
   <button id="stopBtn" disabled>⏹️ Detener</button>
   <button id="sendBtn" disabled>📤 Enviar</button>
 
   <audio id="audioPlayback" controls></audio>
 
+  <!-- Seguimiento facial -->
+  <h2>👁️ Seguimiento facial</h2>
+  <div class="video-container">
+    <video id="video" autoplay muted playsinline width="320" height="240"></video>
+    <canvas id="output" width="320" height="240"></canvas>
+  </div>
+
+  <!-- Indicador de dirección de la mirada -->
+  <p id="gazeStatus">👁️ Dirección de la mirada: desconocida</p>
+
+  <!-- Scripts MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
   <script>
+    // Textos por nivel
+    const texts = {
+      easy: "El gato duerme en la cama. La niña lee un libro. El sol brilla en el cielo.",
+      medium: "Cada mañana, Marcos se levanta temprano para ir al colegio. Se lava la cara, desayuna con su familia y sale con su mochila llena de libros.",
+      hard: "Aunque el cielo estaba cubierto de nubes, Clara decidió salir a caminar por el bosque. El aire era fresco, las hojas crujían bajo sus pies y el silencio la envolvía como una manta suave."
+    };
+
+    const levelSelect = document.getElementById("levelSelect");
+    const readingText = document.getElementById("readingText");
+    readingText.innerText = texts[levelSelect.value];
+    levelSelect.onchange = () => {
+      readingText.innerText = texts[levelSelect.value];
+    };
+
+    // Grabación de voz
     let mediaRecorder;
     let audioChunks = [];
+    let latestVoiceMetrics = null;
+    let latestVisualMetrics = null;
+    let readingRegistered = false;
+    const sessionId = Date.now().toString();
 
     const startBtn = document.getElementById("startBtn");
     const stopBtn = document.getElementById("stopBtn");
@@ -45,121 +139,147 @@
       startBtn.disabled = false;
       stopBtn.disabled = true;
     };
-  </script>
-  
-<script>
-  let latestVoiceMetrics = null;
-  let latestVisualMetrics = null;
-  const sessionId = Date.now().toString(); // ID único por sesión
-  let readingRegistered = false; // ✅ bandera para evitar múltiples registros
 
-  sendBtn.onclick = async () => {
-    const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-    const formData = new FormData();
-    formData.append("audio", audioBlob, "lectura.wav");
+    sendBtn.onclick = async () => {
+      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "lectura.wav");
 
-    const response = await fetch("/upload-audio", {
-      method: "POST",
-      body: formData
-    });
+      const response = await fetch("http://localhost:5000/upload-audio", {
+        method: "POST",
+        body: formData
+      });
 
-    const voiceResult = await response.json();
-    latestVoiceMetrics = voiceResult;
-    alert("✅ Voz analizada:\n" + JSON.stringify(voiceResult, null, 2));
-
-    tryRegisterReading(); // ✅ intenta registrar si ya hay datos visuales
-  };
-
-  async function tryRegisterReading() {
-    if (readingRegistered) return; // ✅ evita duplicación
-    if (!latestVoiceMetrics || !latestVisualMetrics) {
-      console.log("⏳ Esperando ambos análisis para registrar...");
-      return;
-    }
-
-    const readingData = {
-      session_id: sessionId,
-      user_id: "demo_user",
-      text_id: "demo_text",
-      label: "unlabeled",
-      voice: latestVoiceMetrics,
-      visual: latestVisualMetrics
+      const voiceResult = await response.json();
+      latestVoiceMetrics = voiceResult;
+      alert("✅ Voz analizada:\n" + JSON.stringify(voiceResult, null, 2));
+      tryRegisterReading();
     };
 
-    const res = await fetch("/register-reading", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(readingData)
-    });
+    async function tryRegisterReading() {
+      if (readingRegistered) return;
+      if (!latestVoiceMetrics || !latestVisualMetrics) {
+        console.log("⏳ Esperando ambos análisis para registrar...");
+        return;
+      }
 
-    const result = await res.json();
-    alert("📚 Lectura registrada:\n" + JSON.stringify(result, null, 2));
-    readingRegistered = true; // ✅ marca como registrada
-  }
-</script>
+      const readingData = {
+        session_id: sessionId,
+        user_id: "demo_user",
+        text_id: levelSelect.value,
+        label: "unlabeled",
+        voice: latestVoiceMetrics,
+        visual: latestVisualMetrics
+      };
 
-
-  <h2>👁️ Seguimiento facial</h2>
-<video id="video" autoplay muted playsinline width="320" height="240" style="border:1px solid #ccc;"></video>
-<canvas id="output" width="320" height="240" style="position:absolute; left:0; top:0;"></canvas>
-
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-
-<script>
-  const videoElement = document.getElementById('video');
-  const canvasElement = document.getElementById('output');
-  const canvasCtx = canvasElement.getContext('2d');
-
-  const faceMesh = new FaceMesh({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-  });
-
-  faceMesh.setOptions({
-    maxNumFaces: 1,
-    refineLandmarks: true,
-    minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5
-  });
-
-let lastSent = 0;
-
-faceMesh.onResults(results => {
-  const now = Date.now();
-  if (now - lastSent < 2000) return; // espera 2 segundos entre envíos
-
-  canvasCtx.save();
-  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-  canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-
-  if (results.multiFaceLandmarks) {
-    for (const landmarks of results.multiFaceLandmarks) {
-      drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION, { color: '#C0C0C0', lineWidth: 1 });
-      drawConnectors(canvasCtx, landmarks, FACEMESH_RIGHT_EYE, { color: '#FF3030' });
-      drawConnectors(canvasCtx, landmarks, FACEMESH_LEFT_EYE, { color: '#30FF30' });
-
-      const gazePoints = landmarks.map(p => ({ x: p.x, y: p.y }));
-
-      fetch("/upload-visual", {
+      const res = await fetch("http://localhost:5000/register-reading", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gazePoints })
-      }).then(res => res.json())
-        .then(data => {
+        body: JSON.stringify(readingData)
+      });
+
+      const result = await res.json();
+      alert("📚 Lectura registrada:\n" + JSON.stringify(result, null, 2));
+      readingRegistered = true;
+    }
+
+    // Seguimiento facial refinado
+    const videoElement = document.getElementById('video');
+    const canvasElement = document.getElementById('output');
+    const canvasCtx = canvasElement.getContext('2d');
+
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    const leftEyeIndices = FACEMESH_LEFT_EYE.map(pair => pair[0]);
+    const rightEyeIndices = FACEMESH_RIGHT_EYE.map(pair => pair[0]);
+
+    let lastSent = 0;
+
+    function averagePoint(points) {
+      const sum = points.reduce((acc, p) => ({
+        x: acc.x + p.x,
+        y: acc.y + p.y
+      }), { x: 0, y: 0 });
+
+      return {
+        x: sum.x / points.length,
+        y: sum.y / points.length
+      };
+    }
+
+    faceMesh.onResults(results => {
+      const now = Date.now();
+      if (now - lastSent < 2000) return;
+
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+      if (results.multiFaceLandmarks) {
+        for (const landmarks of results.multiFaceLandmarks) {
+          drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION, { color: '#C0C0C0', lineWidth: 1 });
+          drawConnectors(canvasCtx, landmarks, FACEMESH_RIGHT_EYE, { color: '#FF3030' });
+          drawConnectors(canvasCtx, landmarks, FACEMESH_LEFT_EYE, { color: '#30FF30' });
+
+          const leftEyePoints = leftEyeIndices.map(i => landmarks[i]);
+          const rightEyePoints = rightEyeIndices.map(i => landmarks[i]);
+
+          const leftEyeCenter = averagePoint(leftEyePoints);
+          const rightEyeCenter = averagePoint(rightEyePoints);
+
+          const eyeMidpoint = {
+            x: (leftEyeCenter.x + rightEyeCenter.x) / 2,
+            y: (leftEyeCenter.y + rightEyeCenter.y) / 2
+          
+          };
+
+          let gazeDirection = "centro";
+          if (eyeMidpoint.x < 0.45) gazeDirection = "izquierda";
+          else if (eyeMidpoint.x > 0.55) gazeDirection = "derecha";
+
+          document.getElementById("gazeStatus").innerText = "👁️ Dirección de la mirada: " + gazeDirection;
+
+          fetch("http://localhost:5000/upload-visual", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              leftEyeCenter,
+              rightEyeCenter,
+              gazeDirection
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
             latestVisualMetrics = data;
             console.log("✅ Atención visual:", data);
             tryRegisterReading();
-        })
-         .catch(err => console.error("❌ Error al enviar datos visuales:", err));
+          })
+          .catch(err => console.error("❌ Error al enviar datos visuales:", err));
 
-      lastSent = now;
-    }
-  }
+          lastSent = now;
+        }
+      }
 
-  canvasCtx.restore();
-});
+      canvasCtx.restore();
+    });
 
-</script>
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await faceMesh.send({ image: videoElement });
+      },
+      width: 320,
+      height: 240
+    });
+    camera.start();
+  </script>
 </body>
 </html>
