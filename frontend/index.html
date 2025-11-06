@@ -6,8 +6,13 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
-      max-width: 800px;
+      margin: 0px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+
     }
 
     h1, h2, h3 {
@@ -217,60 +222,72 @@
     }
 
     faceMesh.onResults(results => {
-      const now = Date.now();
-      if (now - lastSent < 2000) return;
+  const now = Date.now();
+  if (now - lastSent < 2000) return;
 
-      canvasCtx.save();
-      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+  canvasCtx.save();
+  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-      if (results.multiFaceLandmarks) {
-        for (const landmarks of results.multiFaceLandmarks) {
-          drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION, { color: '#C0C0C0', lineWidth: 1 });
-          drawConnectors(canvasCtx, landmarks, FACEMESH_RIGHT_EYE, { color: '#FF3030' });
-          drawConnectors(canvasCtx, landmarks, FACEMESH_LEFT_EYE, { color: '#30FF30' });
+  if (results.multiFaceLandmarks) {
+    for (const landmarks of results.multiFaceLandmarks) {
+      // Dibujar malla facial
+      drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION, { color: '#C0C0C0', lineWidth: 1 });
+      drawConnectors(canvasCtx, landmarks, FACEMESH_RIGHT_EYE, { color: '#FF3030' });
+      drawConnectors(canvasCtx, landmarks, FACEMESH_LEFT_EYE, { color: '#30FF30' });
 
-          const leftEyePoints = leftEyeIndices.map(i => landmarks[i]);
-          const rightEyePoints = rightEyeIndices.map(i => landmarks[i]);
+      // Cálculo de dirección de la mirada usando iris derecho (cuanto más cerca de 0.33 = izquierda, 0.66 = derecha)
+      let gazeDirection = "centro";
+      try {
+        const leftCorner = landmarks[33];   // borde izquierdo del ojo derecho
+        const rightCorner = landmarks[133]; // borde derecho del ojo derecho
+        const pupil = landmarks[468];       // centro estimado del iris derecho
 
-          const leftEyeCenter = averagePoint(leftEyePoints);
-          const rightEyeCenter = averagePoint(rightEyePoints);
+        const eyeWidth = rightCorner.x - leftCorner.x;
+        const pupilOffset = pupil.x - leftCorner.x;
+        const ratio = pupilOffset / eyeWidth;
 
-          const eyeMidpoint = {
-            x: (leftEyeCenter.x + rightEyeCenter.x) / 2,
-            y: (leftEyeCenter.y + rightEyeCenter.y) / 2
-          
-          };
-
-          let gazeDirection = "centro";
-          if (eyeMidpoint.x < 0.45) gazeDirection = "izquierda";
-          else if (eyeMidpoint.x > 0.55) gazeDirection = "derecha";
-
-          document.getElementById("gazeStatus").innerText = "👁️ Dirección de la mirada: " + gazeDirection;
-
-          fetch("http://localhost:5000/upload-visual", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              leftEyeCenter,
-              rightEyeCenter,
-              gazeDirection
-            })
-          })
-          .then(res => res.json())
-          .then(data => {
-            latestVisualMetrics = data;
-            console.log("✅ Atención visual:", data);
-            tryRegisterReading();
-          })
-          .catch(err => console.error("❌ Error al enviar datos visuales:", err));
-
-          lastSent = now;
-        }
+        if (ratio < 0.35) gazeDirection = "izquierda";
+        else if (ratio > 0.65) gazeDirection = "derecha";
+      } catch (e) {
+        console.warn("No se pudo calcular la dirección de la mirada con el iris.");
       }
 
-      canvasCtx.restore();
-    });
+      // Cálculo de centros de ojos (para análisis visual adicional)
+      const leftEyePoints = leftEyeIndices.map(i => landmarks[i]);
+      const rightEyePoints = rightEyeIndices.map(i => landmarks[i]);
+
+      const leftEyeCenter = averagePoint(leftEyePoints);
+      const rightEyeCenter = averagePoint(rightEyePoints);
+
+      // Mostrar dirección en pantalla
+      document.getElementById("gazeStatus").innerText = "👁️ Dirección de la mirada: " + gazeDirection;
+
+      // Enviar datos visuales al backend
+      fetch("http://localhost:5000/upload-visual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leftEyeCenter,
+          rightEyeCenter,
+          gazeDirection
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        latestVisualMetrics = data;
+        console.log("✅ Atención visual:", data);
+        tryRegisterReading();
+      })
+      .catch(err => console.error("❌ Error al enviar datos visuales:", err));
+    }
+
+    lastSent = now;
+  }
+
+  canvasCtx.restore();
+});
+
 
     const camera = new Camera(videoElement, {
       onFrame: async () => {
