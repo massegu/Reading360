@@ -1,48 +1,97 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Reading360 - Grabación de voz</title>
+<meta charset="UTF-8" />
+<!-- Encabezado alineado a la izquierda -->
+<div class="header">
+  <h1>🎙️ REading</h1>
+</div>
+
+<!-- Explicación y selector de nivel -->
+<div class="level-row">
+  <p class="instructions">Selecciona un nivel, lee el texto en voz alta y luego envía el audio para analizarlo.</p>
+  <div class="level-selector">
+    <label for="levelSelect">📚 Nivel de lectura:</label>
+    <select id="levelSelect">
+      <option value="easy">Nivel 1 – Fácil</option>
+      <option value="medium">Nivel 2 – Intermedio</option>
+      <option value="hard">Nivel 3 – Avanzado</option>
+    </select>
+  </div>
+</div>
+
+<!-- Contenedor principal -->
+<div class="reading-visual-container">
+  <!-- Texto a leer -->
+  <div id="readingText"></div>
+
+  <!-- Cámara y canvas -->
+  <div class="video-container">
+    <video id="video" autoplay muted playsinline width="320" height="240"></video>
+    <canvas id="output" width="320" height="240"></canvas>
+  </div>
+
+  <!-- Dirección de la mirada -->
+  <p id="gazeStatus">👁️ Dirección de la mirada: desconocida</p>
+</div>
+
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
-
-    h1, h2, h3 {
-      margin-top: 30px;
-    }
-
-  .level-selector {
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 20px;
-  max-width: 800px;
   text-align: left;
 }
 
-  .reading-visual-container {
+.header {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.level-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  max-width: 800px;
+  margin-bottom: 20px;
+}
+
+.instructions {
+  flex: 1;
+  font-size: 16px;
+  margin: 0;
+}
+
+.level-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#readingText {
+  background-color: #fefefe;
+  border: 2px solid #ccc;
+  padding: 16px;
+  font-size: 30px;
+  line-height: 1.6;
+  max-width: 600px;
+  width: 100%;
+  margin: 20px auto;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  text-align: left;
+}
+
+.reading-visual-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 20px;
   margin-top: 20px;
-}
-
-#readingText {
-  text-align: left;
-  max-width: 600px;
-  width: 100%;
-  margin: 0 auto;
-  font-size: 30px;
 }
 
 .controls {
@@ -54,31 +103,32 @@
   gap: 10px;
 }
 
-    audio {
-      margin-top: 10px;
-    }
+audio {
+  margin-top: 10px;
+}
 
-    .video-container {
-      position: relative;
-      width: 320px;
-      height: 240px;
-      margin-top: 20px;
-    }
+.video-container {
+  position: relative;
+  width: 320px;
+  height: 240px;
+  margin-top: 20px;
+}
 
-    #video {
-      border: 1px solid #ccc;
-    }
-    #output {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 320px;
-      height: 240px;
-      pointer-events: none;
-      background-color: transparent;
-  }
+#video {
+  border: 1px solid #ccc;
+}
 
-  @media (max-width: 600px) {
+#output {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 320px;
+  height: 240px;
+  pointer-events: none;
+  background-color: transparent;
+}
+
+@media (max-width: 600px) {
   .video-container {
     width: 100%;
     height: auto;
@@ -93,7 +143,6 @@
     font-size: 18px;
   }
 }
-
   </style>
 </head>
 <body>
