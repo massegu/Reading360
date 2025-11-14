@@ -5,7 +5,8 @@
   <title>Reading 360</title>
   <style>
     /* Aquí va tu CSS */
-    body {
+ /* Estilos generales */
+body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 20px;
@@ -15,19 +16,86 @@
   text-align: left;
 }
 
-.header {
+/* Layout principal: dos columnas */
+.main-layout {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 40px;
+  align-items: center; /* Alinea verticalmente audio y título */
   width: 100%;
-  margin-bottom: 10px;
-  text-align: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 20px;
 }
 
+/* Panel izquierdo: audio + botones */
+.controls-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.audio-wrapper {
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.controls {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+/* Panel derecho: título alineado con audio */
+.header-aligned {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.header-aligned h1 {
+  margin: 0;
+  font-size: 32px;
+}
+.header-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 350px;
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 20px;
+}
+
+.header-row h1 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.header-row audio {
+  flex-shrink: 0;
+  width: 200px;
+}
+
+/* Panel de contenido debajo del título */
+.content-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 800px;
+  margin-top: 30px;
+}
+
+/* Selector de nivel y explicación */
 .level-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 20px;
-  max-width: 800px;
   margin-bottom: 20px;
 }
 
@@ -43,79 +111,33 @@
   gap: 10px;
 }
 
+/* Texto a leer */
 #readingText {
   background-color: #fefefe;
   border: 2px solid #ccc;
   padding: 16px;
   font-size: 30px;
   line-height: 1.6;
-  max-width: 600px;
   width: 100%;
-  margin: 20px auto;
   box-shadow: 0 0 8px rgba(0,0,0,0.1);
   text-align: left;
 }
 
-.reading-visual-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 30px;
-  margin-top: 20px;
-}
-.layout {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 40px;
-  align-items: start;
-  width: 100%;
-  max-width: 1000px;
-}
-.video-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.side-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 15px;
-}
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.control-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  align-items: flex-start;
-}
-
-audio {
-  margin-top: 10px;
-}
-
+/* Vídeo y canvas */
 .video-container {
   position: relative;
   width: 640px;
   height: 480px;
-}
-.video-controls-wrapper {
-  display: flex;
-  align-items: center;       /* Centra verticalmente respecto a los botones */
-  justify-content: center;   /* Centra horizontalmente el conjunto */
-  gap: 40px;
-  flex-wrap: wrap;
-  width: 100%;
-}
-#video {
-  border: 1px solid #ccc;
+  margin-top: 20px;
 }
 
-#video, #output {
+#video {
+  border: 1px solid #ccc;
+  width: 640px;
+  height: 480px;
+}
+
+#output {
   position: absolute;
   left: 0;
   top: 0;
@@ -124,20 +146,28 @@ audio {
   pointer-events: none;
   background-color: transparent;
 }
+
+/* Estado de la mirada */
 #gazeStatus {
   font-size: 18px;
   margin-top: 10px;
+  text-align: center;
+  width: 80%;
 }
 
+/* Adaptación móvil */
 @media (max-width: 600px) {
-  .video-controls-wrapper {
+  .main-layout {
+    display: flex;
     flex-direction: column;
     align-items: center;
-  } 
+  }
+
   .controls {
     flex-direction: row;
     gap: 10px;
   }
+
   .video-container {
     width: 100%;
     height: auto;
@@ -151,19 +181,48 @@ audio {
   #readingText {
     font-size: 18px;
   }
+
   #gazeStatus {
     font-size: 14px;
     margin-top: 10px;
+  }
 }
+
+
+@media (max-width: 600px) {
+  .video-container {
+    width: 100%;
+    height: auto;
+  }
+
+  #video, #output {
+    width: 100%;
+    height: auto;
+  }
+
+  #readingText {
+    font-size: 18px;
+  }
+}
+
   </style>
 </head>
 <body>
-  <!-- Encabezado alineado a la izquierda -->
-  <div class="header">
-    <h1>🎙️ Reading 360</h1>
-  </div>
+<!-- Encabezado con título y reproductor alineados horizontalmente -->
+<div class="header-row">
+  <h1>🎙️ Reading 360</h1>
+  <audio id="audioPlayer" controls></audio>
+</div>
 
-  <!-- Explicación y selector de nivel -->
+<!-- Botones de grabación en línea horizontal -->
+<div class="controls">
+  <button id="startBtn">🔴 Grabar</button>
+  <button id="stopBtn" disabled>⏹️ Detener</button>
+  <button id="sendBtn" disabled>📤 Enviar</button>
+</div>
+
+<!-- Panel de contenido -->
+<div class="content-panel">
   <div class="level-row">
     <p class="instructions">Selecciona un nivel, lee el texto en voz alta y luego envía el audio para analizarlo.</p>
   </div>
@@ -177,34 +236,18 @@ audio {
     </select>
   </div>
 
-  <div class="reading-visual-container">
-    <!-- Texto a leer -->
-    <div id="readingText"></div>
+  <div id="readingText"></div>
 
-    <!-- Contenedor principal: controles a la izquierda, vídeo centrado -->
-    <div class="layout">
-      <!-- Panel izquierdo: controles + audio -->
-      <div class="control-panel">
-        <div class="controls">
-          <button id="startBtn">🔴 Grabar</button>
-          <button id="stopBtn" disabled>⏹️ Detener</button>
-          <button id="sendBtn" disabled>📤 Enviar</button>
-        </div>
-        <audio id="audioPlayer" controls></audio>
-      </div>
-
-      <!-- Panel derecho: vídeo + canvas + mirada -->
-      <div class="video-wrapper">
-        <div class="video-container">
-          <video id="video" autoplay muted playsinline width="640" height="480"></video>
-          <canvas id="output" width="640" height="480"></canvas>
-        </div>
-        <p id="gazeStatus">👁️ Dirección de la mirada: desconocida</p>
-      </div>
-    </div>
+  <div class="video-container">
+    <video id="video" autoplay muted playsinline width="640" height="480"></video>
+    <canvas id="output" width="640" height="480"></canvas>
   </div>
-</body>
-</html>
+
+  <p id="gazeStatus">👁️ Dirección de la mirada: desconocida</p>
+</div>
+
+   
+  
 
   <!-- Scripts MediaPipe -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
@@ -237,7 +280,7 @@ audio {
     const startBtn = document.getElementById("startBtn");
     const stopBtn = document.getElementById("stopBtn");
     const sendBtn = document.getElementById("sendBtn");
-    const audioPlayback = document.getElementById("audioPlayback");
+    const audioPlayback = document.getElementById("audioPlayer");
 
     startBtn.onclick = async () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
