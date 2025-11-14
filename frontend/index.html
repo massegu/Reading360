@@ -1,42 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
-<meta charset="UTF-8" />
-<!-- Encabezado alineado a la izquierda -->
-<div class="header">
-  <h1>🎙️ REading</h1>
-</div>
-
-<!-- Explicación y selector de nivel -->
-<div class="level-row">
-  <p class="instructions">Selecciona un nivel, lee el texto en voz alta y luego envía el audio para analizarlo.</p>
-  <div class="level-selector">
-    <label for="levelSelect">📚 Nivel de lectura:</label>
-    <select id="levelSelect">
-      <option value="easy">Nivel 1 – Fácil</option>
-      <option value="medium">Nivel 2 – Intermedio</option>
-      <option value="hard">Nivel 3 – Avanzado</option>
-    </select>
-  </div>
-</div>
-
-<!-- Contenedor principal -->
-<div class="reading-visual-container">
-  <!-- Texto a leer -->
-  <div id="readingText"></div>
-
-  <!-- Cámara y canvas -->
-  <div class="video-container">
-    <video id="video" autoplay muted playsinline width="320" height="240"></video>
-    <canvas id="output" width="320" height="240"></canvas>
-  </div>
-
-  <!-- Dirección de la mirada -->
-  <p id="gazeStatus">👁️ Dirección de la mirada: desconocida</p>
-</div>
-
-
+<head>
+  <meta charset="UTF-8" />
+  <title>Reading 360</title>
   <style>
-body {
+    /* Aquí va tu CSS */
+    body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 20px;
@@ -49,6 +18,7 @@ body {
 .header {
   width: 100%;
   margin-bottom: 10px;
+  text-align: center;
 }
 
 .level-row {
@@ -90,17 +60,38 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 30px;
   margin-top: 20px;
 }
-
+.layout {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 40px;
+  align-items: start;
+  width: 100%;
+  max-width: 1000px;
+}
+.video-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 15px;
+}
 .controls {
-  position: absolute;
-  left: 20px;
-  top: 40px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.control-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: flex-start;
 }
 
 audio {
@@ -109,26 +100,44 @@ audio {
 
 .video-container {
   position: relative;
-  width: 320px;
-  height: 240px;
-  margin-top: 20px;
+  width: 640px;
+  height: 480px;
 }
-
+.video-controls-wrapper {
+  display: flex;
+  align-items: center;       /* Centra verticalmente respecto a los botones */
+  justify-content: center;   /* Centra horizontalmente el conjunto */
+  gap: 40px;
+  flex-wrap: wrap;
+  width: 100%;
+}
 #video {
   border: 1px solid #ccc;
 }
 
-#output {
+#video, #output {
   position: absolute;
   left: 0;
   top: 0;
-  width: 320px;
-  height: 240px;
+  width: 640px;
+  height: 480px;
   pointer-events: none;
   background-color: transparent;
 }
+#gazeStatus {
+  font-size: 18px;
+  margin-top: 10px;
+}
 
 @media (max-width: 600px) {
+  .video-controls-wrapper {
+    flex-direction: column;
+    align-items: center;
+  } 
+  .controls {
+    flex-direction: row;
+    gap: 10px;
+  }
   .video-container {
     width: 100%;
     height: auto;
@@ -142,43 +151,60 @@ audio {
   #readingText {
     font-size: 18px;
   }
+  #gazeStatus {
+    font-size: 14px;
+    margin-top: 10px;
 }
   </style>
 </head>
 <body>
-  <body>
-  <h1>🎙️ Reading360</h1>
-  <!-- Selector de nivel -->
- <div class="level-selector">
-  <span>Selecciona un nivel, lee el texto en voz alta y luego envía el audio para analizarlo. 📚 Nivel de lectura:</span>
-  <select id="levelSelect">
-    <option value="easy">Nivel 1 – Fácil</option>
-    <option value="medium">Nivel 2 – Intermedio</option>
-    <option value="hard">Nivel 3 – Avanzado</option>
-  </select>
-</div>
-
-  <!-- Contenedor principal: texto + cámara -->
- <div class="reading-visual-container">
-  <div id="readingText"></div>
-
-  <div class="video-container">
-    <video id="video" autoplay muted playsinline width="320" height="240"></video>
-    <canvas id="output" width="320" height="240"></canvas>
+  <!-- Encabezado alineado a la izquierda -->
+  <div class="header">
+    <h1>🎙️ Reading 360</h1>
   </div>
 
-  <p id="gazeStatus">👁️ Dirección de la mirada: desconocida</p>
-</div>
-
-
-  <!-- Botones de grabación en lateral -->
-  <div class="controls">
-    <button id="startBtn">🔴 Grabar</button>
-    <button id="stopBtn" disabled>⏹️ Detener</button>
-    <button id="sendBtn" disabled>📤 Enviar</button>
+  <!-- Explicación y selector de nivel -->
+  <div class="level-row">
+    <p class="instructions">Selecciona un nivel, lee el texto en voz alta y luego envía el audio para analizarlo.</p>
   </div>
 
-  <audio id="audioPlayback" controls></audio>
+  <div class="level-selector">
+    <label for="levelSelect">📚 Nivel de lectura:</label>
+    <select id="levelSelect">
+      <option value="easy">Nivel 1 – Fácil</option>
+      <option value="medium">Nivel 2 – Intermedio</option>
+      <option value="hard">Nivel 3 – Avanzado</option>
+    </select>
+  </div>
+
+  <div class="reading-visual-container">
+    <!-- Texto a leer -->
+    <div id="readingText"></div>
+
+    <!-- Contenedor principal: controles a la izquierda, vídeo centrado -->
+    <div class="layout">
+      <!-- Panel izquierdo: controles + audio -->
+      <div class="control-panel">
+        <div class="controls">
+          <button id="startBtn">🔴 Grabar</button>
+          <button id="stopBtn" disabled>⏹️ Detener</button>
+          <button id="sendBtn" disabled>📤 Enviar</button>
+        </div>
+        <audio id="audioPlayer" controls></audio>
+      </div>
+
+      <!-- Panel derecho: vídeo + canvas + mirada -->
+      <div class="video-wrapper">
+        <div class="video-container">
+          <video id="video" autoplay muted playsinline width="640" height="480"></video>
+          <canvas id="output" width="640" height="480"></canvas>
+        </div>
+        <p id="gazeStatus">👁️ Dirección de la mirada: desconocida</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
 
   <!-- Scripts MediaPipe -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
