@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from backend.analyze_voice import analyze_audio
 from backend.analyze_attention import analyze_visual_metrics
 from backend.register_data import save_reading
@@ -6,6 +7,7 @@ import tempfile
 import os
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route("/upload-audio", methods=["POST"])
 def upload_audio():
@@ -57,9 +59,24 @@ def register_reading():
         data = request.get_json()
         if not data:
             return jsonify({"error": "No se recibieron datos"}), 400
+        
+        # Validación de campos principales
+        missing = [k for k in ["session_id", "user_id", "text_id", "label", "voice", "visual"] if k not in data]
+        if missing:
+            return jsonify({"error": f"Faltan campos: {', '.join(missing)}"}), 400
 
-        voice = data.get("voice", {})
-        visual = data.get("visual", {})
+        voice = data["voice"]
+        visual = data["visual"] 
+        # Validación de subcampos en voice
+        voice_required = ["words_per_minute", "error_rate", "fluency_score", "transcription"]
+        missing_voice = [k for k in voice_required if k not in voice]
+        if missing_voice:
+            return jsonify({"error": f"Faltan campos en 'voice': {', '.join(missing_voice)}"}), 400
+        # Validación de subcampos en visual
+        visual_required = ["attention_score", "gaze_path_length", "fixation_count"]
+        missing_visual = [k for k in visual_required if k not in visual]
+        if missing_visual:
+            return jsonify({"error": f"Faltan campos en 'visual': {', '.join(missing_visual)}"}), 400
 
         reading = {
             "id": data.get("session_id", "unknown"),
@@ -80,10 +97,11 @@ def register_reading():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/", methods=["GET"])
 def home():
     return "✅ Reading360 backend activo"
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
 
