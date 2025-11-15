@@ -1,12 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
+import os
 from flask_cors import CORS
 from backend.analyze_voice import analyze_audio
 from backend.analyze_attention import analyze_visual_metrics
 from backend.register_data import save_reading
 import tempfile
-import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="../frontend", static_url_path="")
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 
@@ -58,6 +58,7 @@ def upload_visual():
 @app.route("/register-reading", methods=["POST"])
 def register_reading():
     try:
+        print("🚀 Ruta /register-reading fue alcanzada")
         data = request.get_json()
         if not data:
             return jsonify({"error": "No se recibieron datos"}), 400
@@ -93,16 +94,18 @@ def register_reading():
             "fixation_count": visual.get("fixation_count", 0),
             "transcription": voice.get("transcription", "")
         }
+        print("🚀 Ruta /register-reading fue alcanzada")
 
         save_reading(reading)
         return jsonify({"status": "✅ Lectura registrada", "id": reading["id"]})
     except Exception as e:
+        print("❌ Error en /register-reading:", e)
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/", methods=["GET"])
-def home():
-    return "✅ Reading360 backend activo"
+@app.route("/")
+def serve_index():
+    return send_from_directory(app.static_folder, "index.html")
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
