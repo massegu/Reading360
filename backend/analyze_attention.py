@@ -22,8 +22,6 @@ def calculate_attention_score(gaze_points):
     score = max(0.0, min(1.0, 1 - dispersion / max_dispersion))
     return round(score, 3)
 
-from .analyze_attention import calculate_attention_score
-
 def analyze_visual_metrics(data):
     """
     Recibe coordenadas faciales y calcula métricas de atención.
