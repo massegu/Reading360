@@ -30,11 +30,14 @@ def save_reading(data):
         data.get("label", ""),
         transcription
     ]
+    print("📦 Valores recibidos para guardar:", values)
+    print("🔢 Longitud:", len(values))
 
     if len(values) != 9:
         print("❌ Error: número incorrecto de campos:", len(values), values)
         return
-
+    else:
+        print("✅ Número correcto de campos. Escribiendo en CSV")
     with open(READINGS_PATH, "a", newline="") as f:
         writer = csv.writer(f)
         if not file_exists:
