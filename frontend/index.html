@@ -310,7 +310,7 @@ body {
       const formData = new FormData();
       formData.append("audio", audioBlob, "lectura.wav");
 
-      const response = await fetch("http://localhost:5000/upload-audio", {
+      const response = await fetch("/upload-audio", {
         method: "POST",
         body: formData
       });
@@ -337,7 +337,7 @@ body {
         visual: latestVisualMetrics
       };
 
-      const res = await fetch("http://localhost:5000/register-reading", {
+      const res = await fetch("/register-reading", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(readingData)
@@ -425,7 +425,7 @@ body {
       document.getElementById("gazeStatus").innerText = "👁️ Dirección de la mirada: " + gazeDirection;
 
       // Enviar datos visuales al backend
-      fetch("http://localhost:5000/upload-visual", {
+      fetch("/upload-visual", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
