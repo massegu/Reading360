@@ -1,2 +1,5 @@
-id,user_id,text_id,words_per_minute,error_rate,fluency_score,attention_score,label,gaze_path_length,fixation_count,transcription
+id,user_id,text_id,words_per_minute,error_rate,fluency_score,attention_score,label,transcription
 
+1763306997571,demo_user,easy,85,0.07,0.57,1,unlabeled,El recato duerme en la lama. La piña le un libro el sol brilla en el cielo.
+1763306997571,demo_user,easy,85,0.07,0.57,-0.5,unlabeled,El recato duerme en la lama. La piña le un libro el sol brilla en el cielo.
+1763307663774,demo_user,easy,78.43,0.25,0.52,1,unlabeled,"Cada mañana el gato duerme la cama, la niña lee un brovi y el sol brilla."
