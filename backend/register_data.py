@@ -3,7 +3,7 @@ import json
 import os
 from datetime import datetime
 
-DATA_DIR = "data"
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 READINGS_PATH = os.path.join(DATA_DIR, "readings.csv")
 ATTENTION_PATH = os.path.join(DATA_DIR, "attention.json")
 
@@ -11,6 +11,7 @@ def save_reading(data):
     """
     Guarda una lectura en readings.csv
     """
+    print("📥 save_reading fue llamado con:", data)  # ← Confirmación en terminal
     file_exists = os.path.isfile(READINGS_PATH)
     with open(READINGS_PATH, "a", newline="") as f:
         writer = csv.writer(f)
