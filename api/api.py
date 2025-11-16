@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 import os
 from flask_cors import CORS
 from backend.analyze_voice import analyze_audio
+from backend.extract_gaze_metrics import extract_gaze_metrics
 from backend.analyze_attention import analyze_visual_metrics
 from backend.register_data import save_reading
 import tempfile
@@ -17,11 +18,14 @@ def upload_audio():
         return jsonify({"error": "No se recibió archivo de audio"}), 400
 
     audio_file = request.files["audio"]
+    text = request.form.get("text", "")
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         audio_file.save(tmp.name)
+        audio_path = tmp.name
         try:
-            metrics = analyze_audio(tmp.name)
-            return jsonify(metrics)
+            voice_metrics= analyze_audio(audio_path,expected_text=text)
+            return jsonify(voice_metrics)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         finally:
@@ -32,6 +36,7 @@ def upload_visual():
     try:
         data = request.get_json()
         gaze_direction = data.get("gazeDirection")
+        #gaze_points = data.get("gazePoints", [])
 
         # Calcular atención básica
         if gaze_direction == "centro":
@@ -45,8 +50,10 @@ def upload_visual():
 
         # Análisis visual adicional
         visual_metrics = analyze_visual_metrics(data)
+        #gaze_metrics = extract_gaze_metrics(gaze_points)
 
         # Combinar resultados
+        #visual_metrics.update(gaze_metrics)
         visual_metrics["gaze_direction"] = gaze_direction
         visual_metrics["attention_score"] = attention_score
 
@@ -76,7 +83,7 @@ def register_reading():
         if missing_voice:
             return jsonify({"error": f"Faltan campos en 'voice': {', '.join(missing_voice)}"}), 400
         # Validación de subcampos en visual
-        visual_required = ["attention_score", "gaze_path_length", "fixation_count"]
+        visual_required = ["attention_score"]
         missing_visual = [k for k in visual_required if k not in visual]
         if missing_visual:
             return jsonify({"error": f"Faltan campos en 'visual': {', '.join(missing_visual)}"}), 400
@@ -90,23 +97,20 @@ def register_reading():
             "fluency_score": voice.get("fluency_score", 0),
             "attention_score": visual.get("attention_score", 0),
             "label": data.get("label", "unlabeled"),
-            "gaze_path_length": visual.get("gaze_path_length", 0),
-            "fixation_count": visual.get("fixation_count", 0),
             "transcription": voice.get("transcription", "")
         }
-        print("🚀 Ruta /register-reading fue alcanzada")
-
+        print("📊 Datos de lectura a registrar:", reading)  # ← Confirmación en terminal
         save_reading(reading)
+        
         return jsonify({"status": "✅ Lectura registrada", "id": reading["id"]})
     except Exception as e:
         print("❌ Error en /register-reading:", e)
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/")
-def serve_index():
-    return send_from_directory(app.static_folder, "index.html")
+def index():
+    return "✅ Backend activo"
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5500)
+    app.run(debug=True, host="0.0.0.0", port=5500)
 
