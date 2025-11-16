@@ -11,7 +11,13 @@ def get_model():
         _model = whisper.load_model("base")
     return _model
 
-def analyze_audio(audio_path):
+from difflib import SequenceMatcher
+
+def compute_error_rate(transcribed, expected):
+    ratio = SequenceMatcher(None, transcribed.lower(), expected.lower()).ratio()
+    return round(1 - ratio, 2)
+
+def analyze_audio(audio_path, expected_text=""):
     """
     Transcribe el audio y calcula métricas de lectura.
     """
@@ -27,6 +33,7 @@ def analyze_audio(audio_path):
         # Transcribir con Whisper
         result = model.transcribe(audio_path)
         text = result.get("text", "")
+        error_rate = compute_error_rate(text, expected_text)
         segments = result.get("segments", [])
         duration = segments[-1]["end"] if segments else 0
 
@@ -42,7 +49,8 @@ def analyze_audio(audio_path):
             "duration": round(duration, 2),
             "words": words,
             "words_per_minute": wpm,
-            "fluency_score": fluency_score
+            "fluency_score": fluency_score,
+            "error_rate": error_rate
         }
 
     except Exception as e:
