@@ -307,8 +307,11 @@ body {
 
     sendBtn.onclick = async () => {
       const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+      const passageText = texts[levelSelect.value];
+      
       const formData = new FormData();
       formData.append("audio", audioBlob, "lectura.wav");
+      formData.append("text", passageText);
 
       const response = await fetch("/upload-audio", {
         method: "POST",
@@ -322,9 +325,13 @@ body {
     };
 
     async function tryRegisterReading() {
-      if (readingRegistered) return;
-      if (!latestVoiceMetrics || !latestVisualMetrics) {
-        console.log("⏳ Esperando ambos análisis para registrar...");
+       console.log("🔍 Intentando registrar lectura...");
+       console.log("latestVoiceMetrics:", latestVoiceMetrics);
+       console.log("latestVisualMetrics:", latestVisualMetrics);
+       console.log("readingRegistered:", readingRegistered);
+       if (readingRegistered) return;
+       if (!latestVoiceMetrics || !latestVisualMetrics) {
+        console.log("Visual enviado a registro",latestVisualMetrics);
         return;
       }
 
@@ -380,14 +387,17 @@ body {
         y: sum.y / points.length
       };
     }
+  
+  let gazePoints = []; // Declarado una sola vez fuera del callback
 
-    faceMesh.onResults(results => {
+faceMesh.onResults(results => {
   const now = Date.now();
-  if (now - lastSent < 2000) return;
 
   canvasCtx.save();
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
   canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+  let gazeDirection = "centro"; // Inicializado fuera del bucle
 
   if (results.multiFaceLandmarks) {
     for (const landmarks of results.multiFaceLandmarks) {
@@ -396,12 +406,11 @@ body {
       drawConnectors(canvasCtx, landmarks, FACEMESH_RIGHT_EYE, { color: '#FF3030' });
       drawConnectors(canvasCtx, landmarks, FACEMESH_LEFT_EYE, { color: '#30FF30' });
 
-      // Cálculo de dirección de la mirada usando iris derecho (cuanto más cerca de 0.45 = izquierda, 0.65 = derecha)
-      let gazeDirection = "centro";
+      // Cálculo de dirección de la mirada usando iris derecho
       try {
-        const leftCorner = landmarks[33];   // borde izquierdo del ojo derecho
-        const rightCorner = landmarks[133]; // borde derecho del ojo derecho
-        const pupil = landmarks[468];       // centro estimado del iris derecho
+        const leftCorner = landmarks[33];
+        const rightCorner = landmarks[133];
+        const pupil = landmarks[468];
 
         const eyeWidth = rightCorner.x - leftCorner.x;
         const pupilOffset = pupil.x - leftCorner.x;
@@ -409,46 +418,54 @@ body {
 
         if (ratio < 0.35) gazeDirection = "izquierda";
         else if (ratio > 0.55) gazeDirection = "derecha";
-        else gazeDirection = "centro"; 
+        else gazeDirection = "centro";
       } catch (e) {
         console.warn("No se pudo calcular la dirección de la mirada con el iris.");
       }
 
-      // Cálculo de centros de ojos (para análisis visual adicional)
+      // Cálculo de centros de ojos
       const leftEyePoints = leftEyeIndices.map(i => landmarks[i]);
       const rightEyePoints = rightEyeIndices.map(i => landmarks[i]);
 
       const leftEyeCenter = averagePoint(leftEyePoints);
       const rightEyeCenter = averagePoint(rightEyePoints);
 
+      const gazeCenter = {
+        x: (leftEyeCenter.x + rightEyeCenter.x) / 2,
+        y: (leftEyeCenter.y + rightEyeCenter.y) / 2
+      };
+
+      gazePoints.push(gazeCenter); // Acumula puntos entre envíos
+
       // Mostrar dirección en pantalla
       document.getElementById("gazeStatus").innerText = "👁️ Dirección de la mirada: " + gazeDirection;
-
-      // Enviar datos visuales al backend
-      fetch("/upload-visual", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leftEyeCenter,
-          rightEyeCenter,
-          gazeDirection
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        latestVisualMetrics = data;
-        console.log("✅ Atención visual:", data);
-        tryRegisterReading();
-      })
-      .catch(err => console.error("❌ Error al enviar datos visuales:", err));
     }
+  }
 
+  // Enviar datos visuales cada 2 segundos
+  if (now - lastSent >= 2000 && gazePoints.length > 0) {
+    fetch("/upload-visual", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gazeDirection,
+        gazePoints
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      latestVisualMetrics = data;
+      console.log("✅ Atención visual:", data);
+      tryRegisterReading();
+    })
+    .catch(err => console.error("❌ Error al enviar datos visuales:", err));
+
+    gazePoints = []; // Reinicia solo después de enviar
     lastSent = now;
   }
 
   canvasCtx.restore();
 });
-
 
     const camera = new Camera(videoElement, {
       onFrame: async () => {
