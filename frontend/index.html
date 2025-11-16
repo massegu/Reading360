@@ -256,13 +256,14 @@ body {
 
   <script>
     // Textos por nivel
+    const levelSelect = document.getElementById("levelSelect");
+
     const texts = {
       easy: "El gato duerme en la cama. La niña lee un libro. El sol brilla en el cielo.",
       medium: "Cada mañana, Marcos se levanta temprano para ir al colegio. Se lava la cara, desayuna con su familia y sale con su mochila llena de libros.",
       hard: "Aunque el cielo estaba cubierto de nubes, Clara decidió salir a caminar por el bosque. El aire era fresco, las hojas crujían bajo sus pies y el silencio la envolvía como una manta suave."
     };
 
-    const levelSelect = document.getElementById("levelSelect");
     const readingText = document.getElementById("readingText");
     readingText.innerText = texts[levelSelect.value];
     levelSelect.onchange = () => {
