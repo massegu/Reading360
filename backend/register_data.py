@@ -11,8 +11,30 @@ def save_reading(data):
     """
     Guarda una lectura en readings.csv
     """
-    print("📥 save_reading fue llamado con:", data)  # ← Confirmación en terminal
+    print("📥 save_reading fue llamado con:", data)
     file_exists = os.path.isfile(READINGS_PATH)
+
+    # Sanear el campo transcription
+    transcription = data.get("transcription", "")
+    if transcription:
+        transcription = transcription.replace("\n", " ").replace('"', "'").strip()
+
+    values = [
+        data.get("id", ""),
+        data.get("user_id", ""),
+        data.get("text_id", ""),
+        data.get("words_per_minute", 0),
+        data.get("error_rate", 0),
+        data.get("fluency_score", 0),
+        data.get("attention_score", 0),
+        data.get("label", ""),
+        transcription
+    ]
+
+    if len(values) != 9:
+        print("❌ Error: número incorrecto de campos:", len(values), values)
+        return
+
     with open(READINGS_PATH, "a", newline="") as f:
         writer = csv.writer(f)
         if not file_exists:
@@ -20,21 +42,9 @@ def save_reading(data):
                 "id", "user_id", "text_id",
                 "words_per_minute", "error_rate",
                 "fluency_score", "attention_score", "label",
-                "gaze_path_length", "fixation_count","transcription"
+                "transcription"
             ])
-        writer.writerow([
-            data["id"],
-            data["user_id"],
-            data["text_id"],
-            data["words_per_minute"],
-            data["error_rate"],
-            data["fluency_score"],
-            data["attention_score"],
-            data["label"],
-            data["gaze_path_length"],
-            data["fixation_count"],
-            data["transcription"]
-        ])
+        writer.writerow(values)
 
 def save_attention(gaze_points):
     """
