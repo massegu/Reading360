@@ -22,6 +22,8 @@ def save_reading(data):
     values = [
         data.get("id", ""),
         data.get("user_id", ""),
+        data.get("age", ""),
+        data.get("sex", ""),
         data.get("text_id", ""),
         data.get("words_per_minute", 0),
         data.get("error_rate", 0),
@@ -42,7 +44,7 @@ def save_reading(data):
         writer = csv.writer(f)
         if not file_exists:
             writer.writerow([
-                "id", "user_id", "text_id",
+                "id", "user_id", "age", "sex", "text_id",
                 "words_per_minute", "error_rate",
                 "fluency_score", "attention_score", "label",
                 "transcription"
