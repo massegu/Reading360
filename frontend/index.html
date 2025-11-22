@@ -63,12 +63,17 @@ body {
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  gap: 350px;
+  gap: 15px;
   width: 100%;
   max-width: 800px;
   margin-bottom: 20px;
 }
 
+.header-row input,
+.header-row select {
+  padding: 5px;
+  font-size: 14px;
+}
 .header-row h1 {
   margin: 0;
   font-size: 32px;
@@ -136,6 +141,11 @@ body {
   width: 640px;
   height: 480px;
 }
+#attentionChart {
+  margin-top: 20px;
+  max-width: 100%;
+}
+
 
 #output {
   position: absolute;
@@ -211,7 +221,17 @@ body {
 <!-- Encabezado con título y reproductor alineados horizontalmente -->
 <div class="header-row">
   <h1>🎙️ Reading 360</h1>
-  <audio id="audioPlayer" controls></audio>
+  <input type="text" id="ageInput" placeholder="Edad">
+<select id="sexSelect">
+  <option value="femenino">Femenino</option>
+  <option value="masculino">Masculino</option>
+  <option value="otro">Otro</option>
+</select>
+</div>
+
+<div class="metrics-panel">
+  <h3>Métricas de Atención</h3>
+  <canvas id="attentionChart" width="400" height="200"></canvas>
 </div>
 
 <!-- Botones de grabación en línea horizontal -->
@@ -341,6 +361,8 @@ body {
         user_id: "demo_user",
         text_id: levelSelect.value,
         label: "unlabeled",
+        age: document.getElementById("ageInput").value,
+        sex: document.getElementById("sexSelect").value,
         voice: latestVoiceMetrics,
         visual: latestVisualMetrics
       };
