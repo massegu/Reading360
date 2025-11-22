@@ -5,6 +5,7 @@ from backend.analyze_voice import analyze_audio
 from backend.extract_gaze_metrics import extract_gaze_metrics
 from backend.analyze_attention import analyze_visual_metrics
 from backend.register_data import save_reading
+from backend.register_data import DATA_DIR
 import tempfile
 
 app = Flask(__name__, static_folder="../frontend", static_url_path="")
@@ -91,6 +92,8 @@ def register_reading():
         reading = {
             "id": data.get("session_id", "unknown"),
             "user_id": data.get("user_id", "anon"),
+            "age": data.get("age", ""),
+            "sex": data.get("sex", ""),
             "text_id": data.get("text_id", "default"),
             "words_per_minute": voice.get("words_per_minute", 0),
             "error_rate": voice.get("error_rate", 0),
@@ -110,6 +113,11 @@ def register_reading():
 @app.route("/")
 def index():
     return "✅ Backend activo"
+
+@app.route("/download-readings")
+def download_readings():
+    return send_from_directory(DATA_DIR, "readings.csv", as_attachment=True)
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5500)
